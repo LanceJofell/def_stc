@@ -1,9 +1,11 @@
 <?php
-session_start();
-if (!isset($_SESSION['login'])) {
-    header("Location: login.php");
+
+// Vercel-compatible authentication check (NO sessions)
+if (!isset($_GET['auth']) || $_GET['auth'] !== "1") {
+    header("Location: /login");
     exit;
 }
+
 ?>
 
 <!DOCTYPE html>
@@ -35,7 +37,9 @@ canvas {
 
 <nav class="navbar navbar-dark bg-dark px-3">
     <span class="navbar-brand">Image Template Generator</span>
-    <a href="logout.php" class="btn btn-danger btn-sm">Logout</a>
+
+    <!-- logout just redirects back to login -->
+    <a href="/login" class="btn btn-danger btn-sm">Logout</a>
 </nav>
 
 <div class="container mt-4">
@@ -49,23 +53,18 @@ canvas {
 
 <input type="file" id="uploadImage" class="form-control mb-2">
 
-<!-- DATE -->
 <label>Date</label>
 <input type="date" id="dateInput" class="form-control mb-2">
 
-<!-- TIME -->
 <label>Time</label>
 <input type="time" id="timeInput" class="form-control mb-2">
 
-<!-- VSR -->
 <label>VSR Number</label>
-<input type="text" id="vsr" class="form-control mb-2" placeholder="Enter VSR No.">
+<input type="text" id="vsr" class="form-control mb-2">
 
-<!-- BOX COUNT -->
 <label>No. of Boxes</label>
-<input type="number" id="boxes" class="form-control mb-2" placeholder="Enter box count">
+<input type="number" id="boxes" class="form-control mb-2">
 
-<!-- ADDRESS -->
 <label>Address</label>
 <select id="addressSelect" class="form-select mb-2" onchange="toggleCustomAddress()">
     <option value="">Select Address</option>
@@ -73,14 +72,11 @@ canvas {
     <option value="custom">Custom Address</option>
 </select>
 
-<!-- CUSTOM ADDRESS -->
-<input type="text" id="customAddress" class="form-control mb-2 d-none" placeholder="Enter custom address">
+<input type="text" id="customAddress" class="form-control mb-2 d-none">
 
-<!-- COUNTED BY -->
 <label>Counted By</label>
-<input type="text" id="countedBy" class="form-control mb-2" placeholder="Enter name">
+<input type="text" id="countedBy" class="form-control mb-2">
 
-<!-- DESCRIPTION -->
 <label>Description</label>
 <input type="text" id="description" class="form-control mb-2">
 
@@ -113,11 +109,11 @@ let ctx = canvas.getContext("2d");
 
 let image = new Image();
 let logo = new Image();
-logo.src = "assets/logo.png";
+logo.src = "/assets/logo.png";
 
 let status = document.getElementById("status");
 
-/* ---------------- IMAGE UPLOAD ---------------- */
+/* IMAGE UPLOAD */
 document.getElementById("uploadImage").addEventListener("change", function(e){
     let reader = new FileReader();
 
@@ -140,7 +136,7 @@ document.getElementById("uploadImage").addEventListener("change", function(e){
     reader.readAsDataURL(e.target.files[0]);
 });
 
-/* ---------------- ADDRESS TOGGLE ---------------- */
+/* ADDRESS TOGGLE */
 function toggleCustomAddress() {
     let select = document.getElementById("addressSelect");
     let custom = document.getElementById("customAddress");
@@ -153,23 +149,17 @@ function toggleCustomAddress() {
     }
 }
 
-/* ---------------- ADDRESS CLEAN LOGIC (NO REDUNDANCY) ---------------- */
+/* ADDRESS RESOLVE */
 function resolveAddress() {
     let select = document.getElementById("addressSelect").value;
     let custom = document.getElementById("customAddress").value.trim();
 
-    if (select === "custom") {
-        return custom !== "" ? custom : "-";
-    }
-
-    if (select !== "") {
-        return select;
-    }
-
+    if (select === "custom") return custom !== "" ? custom : "-";
+    if (select !== "") return select;
     return "-";
 }
 
-/* ---------------- GENERATE IMAGE ---------------- */
+/* GENERATE */
 function generateImage(){
 
     if(!image.src){
@@ -187,50 +177,33 @@ function generateImage(){
 
     let vsr = document.getElementById("vsr").value || "-";
     let boxes = document.getElementById("boxes").value || "0";
-
     let address = resolveAddress();
-
     let countedBy = document.getElementById("countedBy").value || "-";
     let desc = document.getElementById("description").value || "-";
 
-    /* FOOTER */
-            let baseY = canvas.height - 150;
-        let lineHeight = 28;
+    let baseY = canvas.height - 150;
+    let lineHeight = 28;
 
-        ctx.fillStyle = "rgba(0,0,0,0.60)";
-        ctx.fillRect(0, canvas.height - 180, canvas.width, 180);
+    ctx.fillStyle = "rgba(0,0,0,0.60)";
+    ctx.fillRect(0, canvas.height - 180, canvas.width, 180);
 
-        ctx.fillStyle = "#fff";
-        ctx.font = "18px Arial";
+    ctx.fillStyle = "#fff";
+    ctx.font = "18px Arial";
 
-        // LINE 1
-        ctx.fillText("Date: " + date + " | Time: " + time, 20, baseY);
+    ctx.fillText("Date: " + date + " | Time: " + time, 20, baseY);
+    ctx.fillText("VSR No: " + vsr, 20, baseY + lineHeight);
+    ctx.fillText("Boxes: " + boxes + " | Counted By: " + countedBy, 20, baseY + lineHeight * 2);
+    ctx.fillText("Address: " + address, 20, baseY + lineHeight * 3);
+    ctx.fillText("Description: " + desc, 20, baseY + lineHeight * 4);
 
-        // LINE 2
-        ctx.fillText("VSR No: " + vsr, 20, baseY + lineHeight);
-
-        // LINE 3
-        ctx.fillText("Boxes: " + boxes + " | Counted By: " + countedBy, 20, baseY + lineHeight * 2);
-
-        // LINE 4 (ADDRESS)
-        ctx.fillText("Address: " + address, 20, baseY + lineHeight * 3);
-
-        // LINE 5 (DESCRIPTION)
-        ctx.fillText("Description: " + desc, 20, baseY + lineHeight * 4);
-
-    /* LOGO */
     if (logo.complete) {
         ctx.drawImage(logo, canvas.width - 100, 20, 80, 80);
-    } else {
-        logo.onload = function () {
-            ctx.drawImage(logo, canvas.width - 100, 20, 80, 80);
-        };
     }
 
     status.innerText = "Generated successfully";
 }
 
-/* ---------------- DOWNLOAD ---------------- */
+/* DOWNLOAD */
 function downloadImage(){
     let link = document.createElement("a");
     link.download = "template.png";
@@ -238,7 +211,7 @@ function downloadImage(){
     link.click();
 }
 
-/* ---------------- RESET ---------------- */
+/* RESET */
 function resetCanvas(){
     ctx.clearRect(0,0,canvas.width,canvas.height);
     image = new Image();
